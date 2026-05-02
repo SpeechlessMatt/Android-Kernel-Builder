@@ -102,6 +102,7 @@ jobs:
           ARCH=$(echo $params | jq -r ".ARCH")
           LLVM=$(echo $params | jq -r ".LLVM // empty")
           LLVM_IAS=$(echo $params | jq -r ".LLVM_IAS // empty")
+          LOCALVERSION=$(echo $params | jq -r ".LOCALVERSION // empty")
           CROSS_COMPILE=$(echo $params | jq -r ".CROSS_COMPILE")
           CROSS_COMPILE_COMPAT=$(echo $params | jq -r ".CROSS_COMPILE_COMPAT")
           CROSS_COMPILE_ARM32=$(echo $params | jq -r ".CROSS_COMPILE_ARM32")
@@ -125,6 +126,10 @@ jobs:
           fi
           if [ "$LLVM_IAS" = "1" ]; then
             args="$args LLVM_IAS=1"
+          fi
+          if [ -n "$LOCALVERSION" ]; then
+            args="$args LOCALVERSION=\"$LOCALVERSION\""
+            echo "" > ./${{ env.kernelName }}/.scmversion
           fi
           if [ -n "$CROSS_COMPILE" ]; then
             args="$args CROSS_COMPILE=$CROSS_COMPILE"
