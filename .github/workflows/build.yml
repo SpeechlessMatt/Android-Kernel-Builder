@@ -77,6 +77,21 @@ jobs:
 
           echo "PATH Variable: $PATH"
 
+      - name: "🚀 Get Android Clang (Tarball Mode)"
+        working-directory: ./${{ env.kernelDir }}
+        run: |
+          CLANG_VERSION="clang-r450784e"
+          COMMIT_ID="722c840a8e4d58b5ebdab62ce78eacdafd301208"
+
+          echo "📥 Downloading $CLANG_VERSION..."
+          mkdir -p $CLANG_VERSION
+          curl -L "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/${COMMIT_ID}/${CLANG_VERSION}.tar.gz" | tar -xzC ./$CLANG_VERSION
+
+          echo "$(pwd)/$CLANG_VERSION/bin" >> $GITHUB_PATH
+          export PATH="$(pwd)/$CLANG_VERSION/bin:$PATH"
+          echo "✅ Clang version:"
+          clang --version
+
       - name: "😎 Set args"
         id: generate-args
         working-directory: ./${{ env.kernelDir }}
@@ -86,10 +101,13 @@ jobs:
         run: |
           echo "PATH Variable: $PATH"
           ARCH=$(echo $params | jq -r ".ARCH")
+          LLVM=$(echo $params | jq -r ".LLVM // empty")
+          LLVM_IAS=$(echo $params | jq -r ".LLVM_IAS // empty")
           CROSS_COMPILE=$(echo $params | jq -r ".CROSS_COMPILE")
           CROSS_COMPILE_COMPAT=$(echo $params | jq -r ".CROSS_COMPILE_COMPAT")
           CROSS_COMPILE_ARM32=$(echo $params | jq -r ".CROSS_COMPILE_ARM32")
           CLANG_TRIPLE=$(echo $params | jq -r ".CLANG_TRIPLE")
+          EXTRA_ARGS=$(echo $params | jq -r ".EXTRA_ARGS // empty")
           AR=$(echo $params | jq -r ".AR")
           CC=$(echo $params | jq -r ".CC")
 
@@ -102,6 +120,12 @@ jobs:
           fi
           if [ -n "$ARCH" ]; then
             args="$args ARCH=$ARCH"
+          fi
+          if [ "$LLVM" = "1" ]; then
+            args="$args LLVM=1"
+          fi
+          if [ "$LLVM_IAS" = "1" ]; then
+            args="$args LLVM_IAS=1"
           fi
           if [ -n "$CROSS_COMPILE" ]; then
             args="$args CROSS_COMPILE=$CROSS_COMPILE"
@@ -117,6 +141,9 @@ jobs:
           fi
           if [ -n "$CC" ]; then
             args="$args CC=$CC"
+          fi
+          if [ -n "$EXTRA_ARGS" ]; then
+            args="$args $EXTRA_ARGS"
           fi
           echo "args=$args" >> $GITHUB_OUTPUT
 
@@ -138,6 +165,21 @@ jobs:
           echo -e "\nCONFIG_KPROBE_EVENTS=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
 
           cat ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
+
+      - name: 🚀 Maximize Build Space & Setup Swap
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          
+          SWAP_FILE="/mnt/swapfile"
+          sudo fallocate -l 32G $SWAP_FILE
+          sudo chmod 600 $SWAP_FILE
+          sudo mkswap $SWAP_FILE
+          sudo swapon $SWAP_FILE
+          
+          free -h
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
