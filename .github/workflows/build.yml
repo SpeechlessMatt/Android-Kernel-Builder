@@ -51,7 +51,6 @@ jobs:
 
       - name: "⭐ Install prerequisites"
         run: |
-          sudo apt-get update
           sudo apt-get build-essential bc bison cpio flex git pahole python-is-python3 wget libssl-dev libelf-dev libfl-dev zstd
 
       - name: "🌟 Clone kernel source => (${{ env.kernelRepo }})"
