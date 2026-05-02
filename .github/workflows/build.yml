@@ -46,6 +46,9 @@ jobs:
 
       withKernelSU: ${{ matrix.repos.withKernelSU }}
     steps:
+      - name: "😄 Checkout"
+        uses: actions/checkout@v4
+
       - name: "✨ Create working dir"
         run: mkdir -p $kernelDir
 
@@ -200,30 +203,7 @@ jobs:
         run: |
           echo "PATH Variable: $PATH"
           make ${args}
-
-      - name: "📦 Magiskboot pack"
-        run: |
-          BASE_BOOT="./base/boot.img"
-          KERNEL_IMAGE="./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image"
-          DTB="./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtb"
-          MAGISK_URL="https://github.com/topjohnwu/Magisk/releases/download/v30.7/Magisk-v30.7.apk"
-
-          wget "$MAGISK_URL" -O magisk.apk
-
-          unzip -j magisk.apk "lib/x86_64/libmagiskboot.so" -d ./
-          mv libmagiskboot.so magiskboot
-          chmod +x magiskboot
-
-          ./magiskboot unpack "$BASE_BOOT"
-
-          cp -f "$KERNEL_IMAGE" kernel
-
-          if [ -f "$DTB" ]; then
-            cp -f "$DTB" dtb
-          fi
-
-          ./magiskboot repack "$BASE_BOOT" new-boot.img
-
+      
       - name: "💛 Upload Image"
         uses: actions/upload-artifact@v4
         with:
@@ -256,6 +236,29 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: "📦 Magiskboot pack"
+        run: |
+          BASE_BOOT="./base/boot.img"
+          KERNEL_IMAGE="./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image"
+          DTB="./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtb"
+          MAGISK_URL="https://github.com/topjohnwu/Magisk/releases/download/v30.7/Magisk-v30.7.apk"
+
+          wget "$MAGISK_URL" -O magisk.apk
+
+          unzip -j magisk.apk "lib/x86_64/libmagiskboot.so" -d ./
+          mv libmagiskboot.so magiskboot
+          chmod +x magiskboot
+
+          ./magiskboot unpack "$BASE_BOOT"
+
+          cp -f "$KERNEL_IMAGE" kernel
+
+          if [ -f "$DTB" ]; then
+            cp -f "$DTB" dtb
+          fi
+
+          ./magiskboot repack "$BASE_BOOT" new-boot.img
+
       - name: "💖 Upload new-boot.img"
         uses: actions/upload-artifact@v4
         with:
@@ -263,3 +266,4 @@ jobs:
           path: ./new-boot.img
           if-no-files-found: ignore
           retention-days: 7
+
